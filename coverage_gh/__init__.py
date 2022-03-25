@@ -1,0 +1,3 @@
+import coverage
+
+foo = "bar"
