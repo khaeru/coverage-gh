@@ -18,7 +18,7 @@ def _get_annotation_message(start_line, end_line):
     if end_line == start_line:
         return f"Added line #L{start_line} not covered by tests"
     else:
-        return f"Added lines #L{start_line}-{end_line} not covered by tests"
+        return f"Added lines #L{start_line}–{end_line} not covered by tests"
 
 
 def get_missing_range(range_list):
@@ -52,7 +52,7 @@ def read_data(data_file=None) -> Tuple[List[Dict], Numbers]:
         for missing_range in get_missing_range(analysis.missing):
             annotation = create_single_annotation(missing_range, fr.relative_filename())
             annotations.append(annotation)
-            if len(annotations) >= MAX_ANNOTATIONS:
+            if len(annotations) >= MAX_ANNOTATIONS:  # pragma: no cover
                 print("Reached maximum {MAX_ANNOTATIONS}; stopping")
 
         total += analysis.numbers
@@ -127,7 +127,9 @@ class GitHubAPIClient:
             return
 
         if not self._options["dry_run"]:
-            requests.post(**self._request, json=payload).raise_for_status()
+            requests.post(  # pragma: no cover
+                **self._request, json=payload
+            ).raise_for_status()
 
 
 # Use click.option() to read values from GitHub's environment variables, else defaults
