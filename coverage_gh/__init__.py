@@ -1,16 +1,15 @@
-import logging
+import json
 from datetime import datetime, timezone
 from itertools import groupby
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+import click
 import coverage
 import requests
 from coverage.report import get_analysis_to_report
 from coverage.results import Numbers
 from jinja2 import Environment, FileSystemLoader
-
-log = logging.getLogger(__name__)
 
 MAX_ANNOTATIONS = 50
 
@@ -19,7 +18,7 @@ def _get_annotation_message(start_line, end_line):
     if end_line == start_line:
         return f"Added line #L{start_line} not covered by tests"
     else:
-        return f"Added lines #L{start_line}-{end_line} not covered by tests"
+        return f"Added lines #L{start_line}–{end_line} not covered by tests"
 
 
 def get_missing_range(range_list):
@@ -38,10 +37,9 @@ def create_single_annotation(error: Tuple[int, int], file_path: str) -> Dict:
     )
 
 
-def read_data() -> Tuple[List[Dict], Numbers]:
+def read_data(data_file=None) -> Tuple[List[Dict], Numbers]:
     """Read data from coverage's storage location & create annotations."""
-    # TODO make location configurable
-    cov = coverage.Coverage()
+    cov = coverage.Coverage(data_file)
     cov.load()
 
     annotations = []
@@ -53,8 +51,8 @@ def read_data() -> Tuple[List[Dict], Numbers]:
         for missing_range in get_missing_range(analysis.missing):
             annotation = create_single_annotation(missing_range, fr.relative_filename())
             annotations.append(annotation)
-            if len(annotations) >= MAX_ANNOTATIONS:
-                log.warning("Reached maximum {MAX_ANNOTATIONS}; stopping")
+            if len(annotations) >= MAX_ANNOTATIONS:  # pragma: no cover
+                print("Reached maximum {MAX_ANNOTATIONS}; stopping")
 
         total += analysis.numbers
 
@@ -63,6 +61,8 @@ def read_data() -> Tuple[List[Dict], Numbers]:
 
 class GitHubAPIClient:
     """Minimal client to prepare and make a POST request to GitHub's Checks API."""
+
+    annotations = []
 
     def __init__(self, **options):
         # Arguments for requests.post()
@@ -74,8 +74,12 @@ class GitHubAPIClient:
             ),
         )
 
-        # SHA for the HEAD of the pull request branch; used by get_payload()
-        self._head_sha = options.pop("pr_head_sha")
+        self._data_file = options.pop("data_file")
+
+        # Read GitHub event info
+        # Includes SHA for the HEAD of the pull request branch; used by get_payload()
+        with open(options.pop("event_path")) as f:
+            self._event = json.load(f)
 
         self._options = options
 
@@ -94,21 +98,21 @@ class GitHubAPIClient:
 
     def get_payload(self):
         return dict(
-            name="pytest-coverage",
-            head_sha=self._head_sha,
+            name="coverage",
+            head_sha=self._event["pull_request"]["head"]["sha"],
             status="completed",
             conclusion=self.get_conclusion(),
             completed_at=datetime.now(timezone.utc).isoformat(),
             output=dict(
-                title="Coverage Result",
+                title="Code coverage",
                 summary=self.render_summary(),
-                text="Coverage results",
+                text=self.render_summary(),
                 annotations=self.annotations,
             ),
         )
 
     def post(self):
-        self.annotations, self.total = read_data()
+        self.annotations, self.total = read_data(self._data_file)
         payload = self.get_payload()
 
         if self._options["verbose"] or self._options["dry_run"]:
@@ -116,11 +120,48 @@ class GitHubAPIClient:
             print(payload)
 
         if self._options["event_name"] != "pull_request":
-            log.info(
+            print(
                 "Will not make a request for GITHUB_EVENT_NAME=="
                 + self._options["event_name"]
             )
             return
 
         if not self._options["dry_run"]:
-            requests.post(**self._request, json=payload).raise_for_status()
+            requests.post(  # pragma: no cover
+                **self._request, json=payload
+            ).raise_for_status()
+
+
+# Use click.option() to read values from GitHub's environment variables, else defaults
+# (non-functional), while allowing user overrides
+@click.command()
+@click.option(
+    "--api-url",
+    envvar="GITHUB_API_URL",
+    metavar="GITHUB_API_URL",
+    default="https://example.com/api/v999",
+)
+@click.option(
+    "--repo",
+    envvar="GITHUB_REPOSITORY",
+    metavar="GITHUB_REPOSITORY",
+    default="user/repo",
+)
+@click.option(
+    "--token", envvar="GITHUB_TOKEN", metavar="GITHUB_TOKEN", default="abc1234567890def"
+)
+@click.option("--verbose", is_flag=True, help="Display verbose output.")
+@click.option("--dry-run", is_flag=True, help="Only show what would be done.")
+@click.option(
+    "--event-name", envvar="GITHUB_EVENT_NAME", default="MISSING", hidden=True
+)
+@click.option(
+    "--event-path",
+    envvar="GITHUB_EVENT_PATH",
+    default=Path(__file__).parent.joinpath("tests", "event.json"),
+    hidden=True,
+)
+@click.argument("data_file", nargs=-1)
+def cli(**options):
+    options["data_file"] = options["data_file"] or Path.cwd().joinpath(".coverage")
+    GitHubAPIClient(**options).post()
