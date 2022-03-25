@@ -8,6 +8,8 @@ LABEL "com.github.actions.repository"="https://github.com/khaeru/coverage-dh"
 LABEL "com.github.actions.homepage"="https://github.com/khaeru/coverage-dh"
 LABEL "com.github.actions.maintainer"="Paul Natsuo Kishimoto"
 
+WORKDIR /coverage-gh
+COPY coverage_gh pyproject.toml setup.cfg .
 RUN pip install .
 
 ENTRYPOINT ["python", "-m" "coverage_gh"]
