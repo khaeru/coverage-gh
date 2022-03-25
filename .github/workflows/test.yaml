@@ -20,8 +20,10 @@ jobs:
           ~/.cache/pip
         key: ubuntu-latest
 
-    - name: Install dependencies
-      run: python -m pip install --upgrade pip pytest-cov click jinja2 requests
+    - name: Upgrade pip; install package and dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install --editable .
 
     - name: Run pytest to generate a coverage file; copy; then run all tests
       run: |
