@@ -19,7 +19,7 @@ jobs:
       run: python -m pip install --upgrade pip pytest-cov click
 
     - name: Run pytest to generate a coverage file
-      run: pytest . --cov .
+      run: pytest . --cov coverage_gh
 
     - name: Invoke the CLI to annotate the PR
       run: python -m coverage_gh
