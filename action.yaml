@@ -1,0 +1,5 @@
+name: Annotate PR with Python coverage
+description: Annotate PR with Python coverage
+runs:
+  using: docker
+  image: Dockerfile
