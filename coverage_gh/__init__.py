@@ -39,7 +39,6 @@ def create_single_annotation(error: Tuple[int, int], file_path: str) -> Dict:
 
 def read_data(data_file=None) -> Tuple[List[Dict], Numbers]:
     """Read data from coverage's storage location & create annotations."""
-    # TODO make location configurable
     cov = coverage.Coverage(data_file)
     cov.load()
 
@@ -163,5 +162,5 @@ class GitHubAPIClient:
 )
 @click.argument("data_file", nargs=-1)
 def cli(**options):
-    options["data_file"] = options["data_file"] or None
+    options["data_file"] = options["data_file"] or Path.cwd().joinpath(".coverage")
     GitHubAPIClient(**options).post()
