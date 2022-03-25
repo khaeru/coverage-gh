@@ -11,4 +11,4 @@ LABEL "com.github.actions.maintainer"="Paul Natsuo Kishimoto"
 COPY . .
 RUN pip install .
 
-ENTRYPOINT ["python", "-m" "coverage_gh"]
+ENTRYPOINT ["python", "-m", "coverage_gh"]
