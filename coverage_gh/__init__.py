@@ -97,15 +97,14 @@ class GitHubAPIClient:
 
     def get_payload(self):
         return dict(
-            name="pytest-coverage",
+            name="coverage",
             head_sha=self._event["pull_request"]["head"]["sha"],
             status="completed",
             conclusion=self.get_conclusion(),
             completed_at=datetime.now(timezone.utc).isoformat(),
             output=dict(
-                title="Coverage Result",
-                summary=self.render_summary(),
-                text="Coverage results",
+                title="Code coverage",
+                text=self.render_summary(),
                 annotations=self.annotations,
             ),
         )
