@@ -23,8 +23,11 @@ jobs:
     - name: Install dependencies
       run: python -m pip install --upgrade pip pytest-cov click jinja2 requests
 
-    - name: Run pytest to generate a coverage file
-      run: pytest . --cov coverage_gh
+    - name: Run pytest to generate a coverage file; copy; then run all tests
+      run: |
+        pytest . -k test_nothing --cov coverage_gh
+        cp .coverage coverage_gh/tests/example.coverage
+        pytest . --cov coverage_gh
 
     - name: Invoke the CLI to annotate the PR
       run: python -m coverage_gh --verbose --token=${{ github.token }}

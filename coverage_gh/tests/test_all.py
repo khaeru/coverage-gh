@@ -28,6 +28,10 @@ def coveragedata(tmp_path):
     yield path
 
 
+def test_nothing():
+    pass
+
+
 def test_create_single_annotation():
     assert dict(
         annotation_level="warning",
