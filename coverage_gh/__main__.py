@@ -14,6 +14,9 @@ from . import GitHubAPIClient
 @click.option("--token", envvar="GITHUB_TOKEN", default="abc1234567890def")
 @click.option("--verbose", is_flag=True, help="Display verbose output.")
 @click.option("--dry-run", is_flag=True, help="Only show what would be done.")
+@click.option(
+    "--event-name", envvar="GITHUB_EVENT_NAME", default="MISSING", hidden=True
+)
 def cli(**options):
     GitHubAPIClient(**options).post()
 

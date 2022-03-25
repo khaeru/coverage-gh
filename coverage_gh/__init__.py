@@ -114,5 +114,13 @@ class GitHubAPIClient:
         if self._options["verbose"] or self._options["dry_run"]:
             print(self._request)
             print(payload)
+
+        if self._options["event_name"] != "pull_request":
+            log.info(
+                "Will not make a request for GITHUB_EVENT_NAME=="
+                + self._options["event_name"]
+            )
+            return
+
         if not self._options["dry_run"]:
             requests.post(**self._request, json=payload).raise_for_status()
