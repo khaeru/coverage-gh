@@ -165,7 +165,3 @@ class GitHubAPIClient:
 def cli(**options):
     options["data_file"] = options["data_file"] or None
     GitHubAPIClient(**options).post()
-
-
-if __name__ == "__main__":  # pragma: no cover
-    cli()
