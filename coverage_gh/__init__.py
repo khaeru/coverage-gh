@@ -37,10 +37,10 @@ def create_single_annotation(error: Tuple[int, int], file_path: str) -> Dict:
     )
 
 
-def read_data() -> Tuple[List[Dict], Numbers]:
+def read_data(data_file=None) -> Tuple[List[Dict], Numbers]:
     """Read data from coverage's storage location & create annotations."""
     # TODO make location configurable
-    cov = coverage.Coverage()
+    cov = coverage.Coverage(data_file)
     cov.load()
 
     annotations = []
@@ -74,6 +74,8 @@ class GitHubAPIClient:
                 Authorization=f"token {options.pop('token')}",
             ),
         )
+
+        self._data_file = options.pop("data_file")
 
         # Read GitHub event info
         # Includes SHA for the HEAD of the pull request branch; used by get_payload()
@@ -110,7 +112,7 @@ class GitHubAPIClient:
         )
 
     def post(self):
-        self.annotations, self.total = read_data()
+        self.annotations, self.total = read_data(self._data_file)
         payload = self.get_payload()
 
         if self._options["verbose"] or self._options["dry_run"]:
