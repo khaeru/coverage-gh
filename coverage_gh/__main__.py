@@ -1,9 +1,11 @@
 import click
 
+from . import read_data
+
 
 @click.command()
 def cli():
-    print("Hello, world!")
+    read_data()
 
 
 if __name__ == "__main__":
