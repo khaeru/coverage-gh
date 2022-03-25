@@ -62,6 +62,8 @@ def read_data() -> Tuple[List[Dict], Numbers]:
 class GitHubAPIClient:
     """Minimal client to prepare and make a POST request to GitHub's Checks API."""
 
+    annotations = []
+
     def __init__(self, **options):
         # Arguments for requests.post()
         self._request = dict(
