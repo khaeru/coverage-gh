@@ -72,7 +72,7 @@ class GitHubAPIClient:
         )
 
         # SHA for the HEAD of the pull request branch; used by get_payload()
-        self._head_sha = options.pop("pr_head_sha")
+        self._sha = options.pop("sha")
 
         self._options = options
 
@@ -92,7 +92,7 @@ class GitHubAPIClient:
     def get_payload(self):
         return dict(
             name="pytest-coverage",
-            head_sha=self._head_sha,
+            head_sha=self._sha,
             status="completed",
             conclusion=self.get_conclusion(),
             completed_at=datetime.now(timezone.utc).isoformat(),

@@ -12,9 +12,7 @@ from . import GitHubAPIClient
     metavar="GITHUB_API_URL",
     default="https://example.com/api/v999",
 )
-@click.option(
-    "--pr-head-sha", envvar="PR_HEAD_SHA", metavar="PR_HEAD_SHA", default="a1b2c3d4"
-)
+@click.option("--sha", envvar="GITHUB_SHA", metavar="GITHUB_SHA", default="a1b2c3d4")
 @click.option(
     "--repo",
     envvar="GITHUB_REPOSITORY",
