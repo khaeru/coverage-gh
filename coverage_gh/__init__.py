@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from itertools import groupby
 from pathlib import Path
@@ -71,8 +72,10 @@ class GitHubAPIClient:
             ),
         )
 
-        # SHA for the HEAD of the pull request branch; used by get_payload()
-        self._sha = options.pop("sha")
+        # Read GitHub event info
+        # Includes SHA for the HEAD of the pull request branch; used by get_payload()
+        with open(options.pop("event_path")) as f:
+            self._event = json.load(f)
 
         self._options = options
 
@@ -92,7 +95,7 @@ class GitHubAPIClient:
     def get_payload(self):
         return dict(
             name="pytest-coverage",
-            head_sha=self._sha,
+            head_sha=self._event[0]["head"]["sha"],
             status="completed",
             conclusion=self.get_conclusion(),
             completed_at=datetime.now(timezone.utc).isoformat(),
