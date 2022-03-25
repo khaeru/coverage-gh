@@ -1,12 +1,16 @@
 import logging
+from datetime import datetime, timezone
 from itertools import groupby
+from pathlib import Path
+from typing import Dict, List, Tuple
 
 import coverage
+import requests
 from coverage.report import get_analysis_to_report
 from coverage.results import Numbers
+from jinja2 import Environment, FileSystemLoader
 
 log = logging.getLogger(__name__)
-
 
 MAX_ANNOTATIONS = 50
 
@@ -21,25 +25,22 @@ def _get_annotation_message(start_line, end_line):
 def get_missing_range(range_list):
     for a, b in groupby(enumerate(range_list), lambda pair: pair[1] - pair[0]):
         b = list(b)
-        yield {"start_line": b[0][1], "end_line": b[-1][1]}
+        yield (b[0][1], b[-1][1])
 
 
-def create_single_annotation(error, file_path):
-    start_line = error["start_line"]
-    end_line = error["end_line"]
-    message = _get_annotation_message(start_line, end_line)
-    annotation = dict(
+def create_single_annotation(error: Tuple[int, int], file_path: str) -> Dict:
+    return dict(
         path=file_path,
-        start_line=start_line,
-        end_line=end_line,
+        start_line=error[0],
+        end_line=error[1],
         annotation_level="warning",
-        message=message,
+        message=_get_annotation_message(*error),
     )
-    return annotation
 
 
-def read_data():
-    """Read data from coverage's default storage location & format."""
+def read_data() -> Tuple[List[Dict], Numbers]:
+    """Read data from coverage's storage location & create annotations."""
+    # TODO make location configurable
     cov = coverage.Coverage()
     cov.load()
 
@@ -48,9 +49,6 @@ def read_data():
 
     # Iterate over files
     for fr, analysis in get_analysis_to_report(cov, morfs=None):
-        # Demo usage
-        print(f"{analysis.numbers.pc_covered:3.0f}% {fr.relative_filename()}")
-
         # Generate annotations for the current file
         for missing_range in get_missing_range(analysis.missing):
             annotation = create_single_annotation(missing_range, fr.relative_filename())
@@ -60,5 +58,61 @@ def read_data():
 
         total += analysis.numbers
 
-    print(f"{total.pc_covered:3.0f}% total")
-    print(annotations)
+    return annotations, total
+
+
+class GitHubAPIClient:
+    """Minimal client to prepare and make a POST request to GitHub's Checks API."""
+
+    def __init__(self, **options):
+        # Arguments for requests.post()
+        self._request = dict(
+            url=f"{options.pop('api_url')}/repos/{options.pop('repo')}/check-runs",
+            headers=dict(
+                Accept="application/vnd.github.v3+json",
+                Authorization=f"token {options.pop('token')}",
+            ),
+        )
+
+        # SHA for the HEAD of the pull request branch; used by get_payload()
+        self._head_sha = options.pop("pr_head_sha")
+
+        self._options = options
+
+    def render_summary(self):
+        env = Environment(loader=FileSystemLoader(Path(__file__).parent))
+        template = env.get_template("summary.md.template")
+        return template.render(
+            annotations=self.annotations,
+            total=self.total,
+            missing_coverage_file_count=-1,
+            missing_ranges_count=-1,
+        )
+
+    def get_conclusion(self):
+        return "success" if len(self.annotations) == 0 else "failure"
+
+    def get_payload(self):
+        return dict(
+            name="pytest-coverage",
+            head_sha=self._head_sha,
+            status="completed",
+            conclusion=self.get_conclusion(),
+            completed_at=datetime.now(timezone.utc).isoformat(),
+            output=dict(
+                title="Coverage Result",
+                summary=self.render_summary(),
+                text="Coverage results",
+                annotations=self.annotations,
+            ),
+        )
+
+    def post(self):
+        self.annotations, self.total = read_data()
+        payload = self.get_payload()
+
+        if self._options["verbose"] or self._options["dry_run"]:
+            print(self._request)
+            print(payload)
+        if not self._options["dry_run"]:
+            requests.post(**self._request, json=payload).raise_for_status()
