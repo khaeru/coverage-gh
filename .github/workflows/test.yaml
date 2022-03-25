@@ -22,4 +22,4 @@ jobs:
       run: pytest . --cov coverage_gh
 
     - name: Invoke the CLI to annotate the PR
-      run: python -m coverage_gh
+      run: python -m coverage_gh --dry-run
