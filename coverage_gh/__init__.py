@@ -4,6 +4,7 @@ from itertools import groupby
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+import click
 import coverage
 import requests
 from coverage.report import get_analysis_to_report
@@ -126,3 +127,42 @@ class GitHubAPIClient:
 
         if not self._options["dry_run"]:
             requests.post(**self._request, json=payload).raise_for_status()
+
+
+# Use click.option() to read values from GitHub's environment variables, else defaults
+# (non-functional), while allowing user overrides
+@click.command()
+@click.option(
+    "--api-url",
+    envvar="GITHUB_API_URL",
+    metavar="GITHUB_API_URL",
+    default="https://example.com/api/v999",
+)
+@click.option(
+    "--repo",
+    envvar="GITHUB_REPOSITORY",
+    metavar="GITHUB_REPOSITORY",
+    default="user/repo",
+)
+@click.option(
+    "--token", envvar="GITHUB_TOKEN", metavar="GITHUB_TOKEN", default="abc1234567890def"
+)
+@click.option("--verbose", is_flag=True, help="Display verbose output.")
+@click.option("--dry-run", is_flag=True, help="Only show what would be done.")
+@click.option(
+    "--event-name", envvar="GITHUB_EVENT_NAME", default="MISSING", hidden=True
+)
+@click.option(
+    "--event-path",
+    envvar="GITHUB_EVENT_PATH",
+    default=Path(__file__).parent.joinpath("tests", "event.json"),
+    hidden=True,
+)
+@click.argument("data_file", nargs=-1)
+def cli(**options):
+    options["data_file"] = options["data_file"] or None
+    GitHubAPIClient(**options).post()
+
+
+if __name__ == "__main__":  # pragma: no cover
+    cli()
