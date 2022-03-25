@@ -1,11 +1,21 @@
 import click
 
-from . import read_data
+from . import GitHubAPIClient
 
 
+# Use click.option() to read values from GitHub's environment variables, else defaults
+# (non-functional), while allowing user overrides
 @click.command()
-def cli():
-    read_data()
+@click.option(
+    "--api-url", envvar="GITHUB_API_URL", default="https://example.com/api/v999"
+)
+@click.option("--pr-head-sha", envvar="PR_HEAD_SHA", default="a1b2c3d4")
+@click.option("--repo", envvar="GITHUB_REPOSITORY", default="user/repo")
+@click.option("--token", envvar="GITHUB_TOKEN", default="abc1234567890def")
+@click.option("--verbose", is_flag=True, help="Display verbose output.")
+@click.option("--dry-run", is_flag=True, help="Only show what would be done.")
+def cli(**options):
+    GitHubAPIClient(**options).post()
 
 
 if __name__ == "__main__":
