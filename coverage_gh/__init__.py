@@ -81,6 +81,15 @@ class GitHubAPIClient:
         with open(options.pop("event_path")) as f:
             self._event = json.load(f)
 
+        try:
+            self._head_sha = self._event["pull_request"]["head"]["sha"]
+        except KeyError:
+            print(
+                "Unable to get SHA of head of PR branch from event payload: "
+                + repr(self._event.keys())
+            )
+            self._head_sha = None
+
         self._options = options
 
     def render_summary(self):
@@ -99,7 +108,7 @@ class GitHubAPIClient:
     def get_payload(self):
         return dict(
             name="coverage",
-            head_sha=self._event["pull_request"]["head"]["sha"],
+            head_sha=self._head_sha,
             status="completed",
             conclusion=self.get_conclusion(),
             completed_at=datetime.now(timezone.utc).isoformat(),
