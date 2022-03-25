@@ -105,6 +105,7 @@ class GitHubAPIClient:
             completed_at=datetime.now(timezone.utc).isoformat(),
             output=dict(
                 title="Code coverage",
+                summary=self.render_summary(),
                 text=self.render_summary(),
                 annotations=self.annotations,
             ),
