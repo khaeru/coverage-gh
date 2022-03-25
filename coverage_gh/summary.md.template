@@ -1,0 +1,4 @@
+Coverage Report:
+Total files : {{ total.n_files }}
+Files with missing lines : {{ missing_coverage_file_count }}
+Missing coverage line ranges : {{ missing_ranges_count }}
