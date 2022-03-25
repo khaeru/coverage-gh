@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime, timezone
 from itertools import groupby
 from pathlib import Path
@@ -9,8 +8,6 @@ import requests
 from coverage.report import get_analysis_to_report
 from coverage.results import Numbers
 from jinja2 import Environment, FileSystemLoader
-
-log = logging.getLogger(__name__)
 
 MAX_ANNOTATIONS = 50
 
@@ -54,7 +51,7 @@ def read_data() -> Tuple[List[Dict], Numbers]:
             annotation = create_single_annotation(missing_range, fr.relative_filename())
             annotations.append(annotation)
             if len(annotations) >= MAX_ANNOTATIONS:
-                log.warning("Reached maximum {MAX_ANNOTATIONS}; stopping")
+                print("Reached maximum {MAX_ANNOTATIONS}; stopping")
 
         total += analysis.numbers
 
@@ -116,7 +113,7 @@ class GitHubAPIClient:
             print(payload)
 
         if self._options["event_name"] != "pull_request":
-            log.info(
+            print(
                 "Will not make a request for GITHUB_EVENT_NAME=="
                 + self._options["event_name"]
             )
