@@ -1,8 +1,10 @@
 import json
+import operator
 from datetime import datetime, timezone
+from functools import reduce
 from itertools import groupby
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import click
 import coverage
@@ -19,6 +21,19 @@ def _get_annotation_message(start_line, end_line):
         return f"Added line #L{start_line} not covered by tests"
     else:
         return f"Added lines #L{start_line}–{end_line} not covered by tests"
+
+
+def _get_head_sha(info: Dict) -> Optional[str]:
+    """Parse the SHA of the head commit from the GitHub event payload `info`."""
+    for key in ("pull_request.head.sha", "after"):
+        try:
+            return reduce(operator.getitem, key.split("."), info)
+        except KeyError:
+            pass
+
+    print(f"Unable to get SHA of head of PR branch from event payload: {info}")
+
+    return None
 
 
 def get_missing_range(range_list):
@@ -74,22 +89,17 @@ class GitHubAPIClient:
             ),
         )
 
+        # Location of the data file
         self._data_file = options.pop("data_file")
 
         # Read GitHub event info
-        # Includes SHA for the HEAD of the pull request branch; used by get_payload()
         with open(options.pop("event_path")) as f:
             self._event = json.load(f)
 
-        try:
-            self._head_sha = self._event["pull_request"]["head"]["sha"]
-        except KeyError:
-            print(
-                "Unable to get SHA of head of PR branch from event payload: "
-                + repr(self._event.keys())
-            )
-            self._head_sha = None
+        # Look up SHA for the HEAD of the pull request branch; used by get_payload()
+        self._head_sha = _get_head_sha(self._event)
 
+        # Store remaining options
         self._options = options
 
     def render_summary(self):
@@ -125,8 +135,8 @@ class GitHubAPIClient:
         payload = self.get_payload()
 
         if self._options["verbose"] or self._options["dry_run"]:
-            print(self._request)
-            print(payload)
+            print("Request arguments:", self._request)
+            print("Payload:", payload)
 
         if self._options["event_name"] != "pull_request":
             print(
