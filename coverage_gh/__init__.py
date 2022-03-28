@@ -89,8 +89,10 @@ def _maybe_alias_paths(cov: coverage.Coverage) -> None:
 
     # Create new data by mapping from the existing to the new locations
     new_data = coverage.CoverageData(basename=".coverage-gh.tmp")
-    new_data.write()
+    new_data.write()  # Necessary so that the next command succeeds
     new_data.update(cdata, aliases)
+
+    # Overwrite the original with the new data
     cov._data.erase()
     cov._data.update(new_data)
 
@@ -107,11 +109,10 @@ def read_data(data_file=None) -> Tuple[List[Dict], Numbers]:
     # Iterate over files
     for fr, analysis in get_analysis_to_report(cov, morfs=None):
         # Generate annotations for the current file
-        for missing_range in get_missing_range(analysis.missing):
-            annotation = create_single_annotation(missing_range, fr.relative_filename())
-            annotations.append(annotation)
-            if len(annotations) >= MAX_ANNOTATIONS:  # pragma: no cover
-                print("Reached maximum {MAX_ANNOTATIONS}; stopping")
+        annotations.extend(
+            create_single_annotation(missing_range, fr.relative_filename())
+            for missing_range in get_missing_range(analysis.missing)
+        )
 
         total += analysis.numbers
 
@@ -181,6 +182,14 @@ class GitHubAPIClient:
 
     def post(self):
         self.annotations, self.total = read_data(self._data_file)
+
+        if len(self.annotations) > MAX_ANNOTATIONS:
+            print(
+                f"Total annotations {len(self.annotations)} is >{MAX_ANNOTATIONS}; "
+                "extras discarded"
+            )
+            self.annotations = self.annotations[:MAX_ANNOTATIONS]
+
         payload = self.get_payload()
 
         if self._options["verbose"] or self._options["dry_run"]:
