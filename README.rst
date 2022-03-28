@@ -9,27 +9,27 @@ If not, then ``coverage-gh`` fills the niche as "poor man's" option for private 
 
 Usage
 =====
-The action assumes your workflow invokes ``coverage`` (e.g. using `pytest-cov <>`_) to generate a date file, named .coverage by default.
+The action assumes your workflow invokes ``coverage`` (e.g. using `pytest-cov <https://github.com/pytest-dev/pytest-cov/>`_) to generate a date file, named .coverage by default.
 This is the only file needed by the action, i.e., you do not need to give arguments like ``pytest … --cov-report=xml`` unless otherwise needed.
 
-```
-- uses: khaeru/codecov-gh@0.2
-  with:
-    # Token used to report checks. Required.
-    token: ${{ github.token }}
+.. code-block:: yaml
 
-    # Location of the coverage data file. Optional.
-    #
-    # Default: .coverage, in the GitHub Actions workspace directory.
-    data-file: .coverage
+   - uses: khaeru/codecov-gh@0.2
+     with:
+       # Token used to report checks. Required.
+       token: ${{ github.token }}
 
-    # Percent coverage required for the check to pass. Optional.
-    #
-    # This is a floating-point number between 0 and 100.
-    #
-    # Default: 100.0
-    threshold: 100.
-```
+       # Location of the coverage data file. Optional.
+       #
+       # Default: .coverage, in the GitHub Actions workspace directory.
+       data-file: .coverage
+
+       # Percent coverage required for the check to pass. Optional.
+       #
+       # This is a floating-point number between 0 and 100.
+       #
+       # Default: 100.0
+       threshold: 100.
 
 License & credits
 =================
