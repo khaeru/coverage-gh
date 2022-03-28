@@ -14,7 +14,7 @@ This is the only file needed by the action, i.e., you do not need to give argume
 
 .. code-block:: yaml
 
-   - uses: khaeru/codecov-gh@0.2
+   - uses: khaeru/codecov-gh@v1
      with:
        # Token used to report checks. Required.
        token: ${{ github.token }}
