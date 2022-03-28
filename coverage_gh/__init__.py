@@ -110,10 +110,15 @@ class GitHubAPIClient:
             total=self.total,
             missing_coverage_file_count=-1,
             missing_ranges_count=-1,
+            options=self._options,
         )
 
     def get_conclusion(self):
-        return "success" if len(self.annotations) == 0 else "failure"
+        return (
+            "success"
+            if self.total.pc_covered >= self._options["threshold"]
+            else "failure"
+        )
 
     def get_payload(self):
         return dict(
@@ -180,7 +185,7 @@ class GitHubAPIClient:
     default=Path(__file__).parent.joinpath("tests", "event.json"),
     hidden=True,
 )
-@click.argument("data_file", nargs=-1)
+@click.argument("data_file")
+@click.argument("threshold", type=float)
 def cli(**options):
-    options["data_file"] = options["data_file"] or Path.cwd().joinpath(".coverage")
     GitHubAPIClient(**options).post()

@@ -1,5 +1,24 @@
 name: Annotate PR with Python coverage
 description: Annotate PR with Python coverage
+
+inputs:
+  data-file:
+    description: Coverage data file
+    required: false
+    default: .coverage
+  threshold:
+    description: >-
+      Percent coverage required for the check to pass (float, between 0 and 100)
+    required: false
+    default: 100
+
 runs:
   using: docker
   image: Dockerfile
+  args:
+    - ${{ inputs.data-file }}
+    - ${{ inputs.threshold }}
+
+# outputs:
+#   total-pc:
+#     description: Total coverage in percent.

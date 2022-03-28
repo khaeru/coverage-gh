@@ -1,4 +1,4 @@
-**{{ "{:.2f}%".format(total.pc_covered) }}** total coverage
+**{{ "{:.2f}%".format(total.pc_covered) }}** total coverage; threshold {{ options.threshold }}
 
 Total files : {{ total.n_files }}
 Files with missing lines : {{ missing_coverage_file_count }}

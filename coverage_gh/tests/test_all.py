@@ -60,6 +60,7 @@ class TestGitHubAPIClient:
     def client(self, coveragedata):
         return GitHubAPIClient(
             data_file=coveragedata,
+            threshold=100,
             api_url="api_url",
             repo="repo",
             token="token",
@@ -70,6 +71,7 @@ class TestGitHubAPIClient:
         )
 
     def test_get_conclusions(self, client):
+        setattr(client, "total", Numbers(n_statements=1))
         assert "success" == client.get_conclusion()
 
     def test_get_payload(self, client):
