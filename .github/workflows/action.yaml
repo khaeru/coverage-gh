@@ -25,10 +25,11 @@ jobs:
         python -m pip install --upgrade pip pytest-cov \
           click Jinja2 requests
 
-    - name: Run pytest to generate a coverage file; copy; then run all tests
+    - name: Run pytest to generate a coverage file
       run: pytest --color=yes . -k nothing --cov .
 
     - name: Invoke the CLI to annotate the PR
       uses: khaeru/coverage-gh@debug-code-loc
       with:
         token: ${{ github.token }}
+        threshold: 41
