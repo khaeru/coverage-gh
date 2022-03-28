@@ -1,5 +1,8 @@
 name: Annotate PR with Python coverage
 description: Annotate PR with Python coverage
+branding:
+  icon: code
+  color: blue
 
 inputs:
   token:
