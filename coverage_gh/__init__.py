@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Tuple
 import click
 import coverage
 import requests
+from coverage.files import PathAliases
 from coverage.report import get_analysis_to_report
 from coverage.results import Numbers
 from jinja2 import Environment, FileSystemLoader
@@ -52,24 +53,74 @@ def create_single_annotation(error: Tuple[int, int], file_path: str) -> Dict:
     )
 
 
+def _maybe_alias_paths(cov: coverage.Coverage) -> None:
+    # Retrieve the CoverageData object
+    cdata = cov.get_data()
+
+    # Find a common base path for measured files with data stored in .coverage
+    base = None  # Initially no result
+    for path in map(Path, cdata.measured_files()):
+        if base is None:
+            # Store the parent directory and the full path to an example file
+            base, example = path.parents[1], path
+        elif not path.parents[1].is_relative_to(base):
+            # `path` has a parent directory above `base`, so use that instead
+            base = path.parents[1]
+
+    if base is None:
+        return  # No data
+
+    # Identify the actual location of code files for analysis
+    target = None
+    for candidate in (
+        Path(cdata.data_filename()).parent,  # Directory containing the .coverage file
+        base,  # Common base directory recorded in .coverage entries, from above
+        Path.cwd(),  # Current working directory
+    ):
+        if candidate.joinpath(example.relative_to(base)).exists():
+            target = candidate  # Code files are in this directory
+            break
+
+    # target = Path("/foo/bar")  # uncomment to debug below code
+
+    if target == base:
+        return  # Entries in .coverage already point to actual file locations
+
+    # Use the coverage class for aliasing from recorded → actual file locations
+    aliases = PathAliases()
+    aliases.add(str(base), str(target))
+
+    # Create new data by mapping from the existing to the new locations
+    new_data = coverage.CoverageData(basename=".coverage-gh.tmp")
+    new_data.write()  # Necessary so that the next command succeeds
+    new_data.update(cdata, aliases)
+
+    # Overwrite the original with the new data
+    cov._data.erase()
+    cov._data.update(new_data)
+
+
 def read_data(data_file=None) -> Tuple[List[Dict], Numbers]:
     """Read data from coverage's storage location & create annotations."""
     cov = coverage.Coverage(data_file)
     cov.load()
+    _maybe_alias_paths(cov)
 
     annotations = []
     total = Numbers()
 
     # Iterate over files
-    for fr, analysis in get_analysis_to_report(cov, morfs=None):
-        # Generate annotations for the current file
-        for missing_range in get_missing_range(analysis.missing):
-            annotation = create_single_annotation(missing_range, fr.relative_filename())
-            annotations.append(annotation)
-            if len(annotations) >= MAX_ANNOTATIONS:  # pragma: no cover
-                print("Reached maximum {MAX_ANNOTATIONS}; stopping")
+    try:
+        for fr, analysis in get_analysis_to_report(cov, morfs=None):
+            # Generate annotations for the current file
+            annotations.extend(
+                create_single_annotation(missing_range, fr.relative_filename())
+                for missing_range in get_missing_range(analysis.missing)
+            )
 
-        total += analysis.numbers
+            total += analysis.numbers
+    except coverage.CoverageException:
+        pass
 
     return annotations, total
 
@@ -137,6 +188,14 @@ class GitHubAPIClient:
 
     def post(self):
         self.annotations, self.total = read_data(self._data_file)
+
+        if len(self.annotations) > MAX_ANNOTATIONS:
+            print(
+                f"Total annotations {len(self.annotations)} is >{MAX_ANNOTATIONS}; "
+                "extras discarded"
+            )
+            self.annotations = self.annotations[:MAX_ANNOTATIONS]
+
         payload = self.get_payload()
 
         if self._options["verbose"] or self._options["dry_run"]:
@@ -171,9 +230,7 @@ class GitHubAPIClient:
     metavar="GITHUB_REPOSITORY",
     default="user/repo",
 )
-@click.option(
-    "--token", envvar="GITHUB_TOKEN", metavar="GITHUB_TOKEN", default="abc1234567890def"
-)
+@click.option("--token", envvar="GITHUB_TOKEN", metavar="GITHUB_TOKEN")
 @click.option("--verbose", is_flag=True, help="Display verbose output.")
 @click.option("--dry-run", is_flag=True, help="Only show what would be done.")
 @click.option(
@@ -187,5 +244,13 @@ class GitHubAPIClient:
 )
 @click.argument("data_file")
 @click.argument("threshold", type=float)
+@click.argument("token_arg", nargs=-1)
 def cli(**options):
+    if options["token"] is None:
+        assert 1 == len(options["token_arg"]), (
+            f"Expected 1 final argument (GITHUB_TOKEN); got {options['token_arg']}"
+            f"\n{options}"
+        )
+        options["token"] = options.pop("token_arg")[0]
+
     GitHubAPIClient(**options).post()

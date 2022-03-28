@@ -2,6 +2,8 @@ name: Annotate PR with Python coverage
 description: Annotate PR with Python coverage
 
 inputs:
+  token:
+    description: GitHub API token
   data-file:
     description: Coverage data file
     required: false
@@ -16,8 +18,9 @@ runs:
   using: docker
   image: Dockerfile
   args:
-    - ${{ inputs.data-file }}
-    - ${{ inputs.threshold }}
+  - ${{ inputs.data-file }}
+  - ${{ inputs.threshold }}
+  - ${{ inputs.token }}
 
 # outputs:
 #   total-pc:

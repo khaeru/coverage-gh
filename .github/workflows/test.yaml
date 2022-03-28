@@ -29,7 +29,7 @@ jobs:
       run: |
         pytest --color=yes . -k test_nothing --cov coverage_gh
         cp .coverage coverage_gh/tests/example.coverage
-        pytest --color=yes . --cov coverage_gh
+        pytest --color=yes --verbose . --cov coverage_gh
 
     - name: Invoke the CLI to annotate the PR (dry-run)
-      run: python -m coverage_gh --verbose --dry-run .coverage 100
+      run: python -m coverage_gh --verbose --dry-run .coverage 100 ${{ github.token}}
