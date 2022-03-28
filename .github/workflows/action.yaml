@@ -32,4 +32,4 @@ jobs:
       uses: khaeru/coverage-gh@debug-code-loc
       with:
         token: ${{ github.token }}
-        threshold: 41
+        threshold: 38

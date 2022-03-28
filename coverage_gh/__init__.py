@@ -67,6 +67,9 @@ def _maybe_alias_paths(cov: coverage.Coverage) -> None:
             # `path` has a parent directory above `base`, so use that instead
             base = path.parents[1]
 
+    if base is None:
+        return  # No data
+
     # Identify the actual location of code files for analysis
     target = None
     for candidate in (
@@ -107,14 +110,17 @@ def read_data(data_file=None) -> Tuple[List[Dict], Numbers]:
     total = Numbers()
 
     # Iterate over files
-    for fr, analysis in get_analysis_to_report(cov, morfs=None):
-        # Generate annotations for the current file
-        annotations.extend(
-            create_single_annotation(missing_range, fr.relative_filename())
-            for missing_range in get_missing_range(analysis.missing)
-        )
+    try:
+        for fr, analysis in get_analysis_to_report(cov, morfs=None):
+            # Generate annotations for the current file
+            annotations.extend(
+                create_single_annotation(missing_range, fr.relative_filename())
+                for missing_range in get_missing_range(analysis.missing)
+            )
 
-        total += analysis.numbers
+            total += analysis.numbers
+    except coverage.CoverageException:
+        pass
 
     return annotations, total
 
@@ -126,7 +132,6 @@ class GitHubAPIClient:
 
     def __init__(self, **options):
         # Arguments for requests.post()
-        options["token"] = options["token"] or options.pop("token_arg")[0]
         self._request = dict(
             url=f"{options.pop('api_url')}/repos/{options.pop('repo')}/check-runs",
             headers=dict(
@@ -225,7 +230,7 @@ class GitHubAPIClient:
     metavar="GITHUB_REPOSITORY",
     default="user/repo",
 )
-@click.option("--token", envvar="GITHUB_TOKEN", metavar="GITHUB_TOKEN", default=None)
+@click.option("--token", envvar="GITHUB_TOKEN", metavar="GITHUB_TOKEN")
 @click.option("--verbose", is_flag=True, help="Display verbose output.")
 @click.option("--dry-run", is_flag=True, help="Only show what would be done.")
 @click.option(
@@ -241,4 +246,11 @@ class GitHubAPIClient:
 @click.argument("threshold", type=float)
 @click.argument("token_arg", nargs=-1)
 def cli(**options):
+    if options["token"] is None:
+        assert 1 == len(options["token_arg"]), (
+            f"Expected 1 final argument (GITHUB_TOKEN); got {options['token_arg']}"
+            f"\n{options}"
+        )
+        options["token"] = options.pop("token_arg")[0]
+
     GitHubAPIClient(**options).post()

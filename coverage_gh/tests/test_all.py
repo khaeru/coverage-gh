@@ -85,6 +85,12 @@ class TestGitHubAPIClient:
         client.post()
 
 
-def test_cli():
+def test_cli(monkeypatch, tmp_path):
+    monkeypatch.setenv("GITHUB_TOKEN", "abc1234567890def")
+
     runner = CliRunner()
-    runner.invoke(cli, ["--dry-run"])
+    result = runner.invoke(
+        cli, ["--dry-run", str(tmp_path.joinpath(".coverage")), "99"]
+    )
+
+    assert 0 == result.exit_code, result.output
