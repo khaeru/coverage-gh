@@ -16,8 +16,8 @@ runs:
   using: docker
   image: Dockerfile
   args:
-    - ${{ inputs.data-file }}
-    - ${{ inputs.threshold }}
+  - ${{ inputs.data-file }}
+  - ${{ inputs.threshold }}
 
 # outputs:
 #   total-pc:

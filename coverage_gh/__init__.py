@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Tuple
 import click
 import coverage
 import requests
+from coverage.files import PathAliases
 from coverage.report import get_analysis_to_report
 from coverage.results import Numbers
 from jinja2 import Environment, FileSystemLoader
@@ -52,10 +53,53 @@ def create_single_annotation(error: Tuple[int, int], file_path: str) -> Dict:
     )
 
 
+def _maybe_alias_paths(cov: coverage.Coverage) -> None:
+    # Retrieve the CoverageData object
+    cdata = cov.get_data()
+
+    # Find a common base path for measured files with data stored in .coverage
+    base = None  # Initially no result
+    for path in map(Path, cdata.measured_files()):
+        if base is None:
+            # Store the parent directory and the full path to an example file
+            base, example = path.parents[1], path
+        elif not path.parents[1].is_relative_to(base):
+            # `path` has a parent directory above `base`, so use that instead
+            base = path.parents[1]
+
+    # Identify the actual location of code files for analysis
+    target = None
+    for candidate in (
+        Path(cdata.data_filename()).parent,  # Directory containing the .coverage file
+        base,  # Common base directory recorded in .coverage entries, from above
+        Path.cwd(),  # Current working directory
+    ):
+        if candidate.joinpath(example.relative_to(base)).exists():
+            target = candidate  # Code files are in this directory
+            break
+
+    # target = Path("/foo/bar")  # uncomment to debug below code
+
+    if target == base:
+        return  # Entries in .coverage already point to actual file locations
+
+    # Use the coverage class for aliasing from recorded → actual file locations
+    aliases = PathAliases()
+    aliases.add(str(base), str(target))
+
+    # Create new data by mapping from the existing to the new locations
+    new_data = coverage.CoverageData(basename=".coverage-gh.tmp")
+    new_data.write()
+    new_data.update(cdata, aliases)
+    cov._data.erase()
+    cov._data.update(new_data)
+
+
 def read_data(data_file=None) -> Tuple[List[Dict], Numbers]:
     """Read data from coverage's storage location & create annotations."""
     cov = coverage.Coverage(data_file)
     cov.load()
+    _maybe_alias_paths(cov)
 
     annotations = []
     total = Numbers()
