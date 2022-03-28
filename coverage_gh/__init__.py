@@ -126,6 +126,7 @@ class GitHubAPIClient:
 
     def __init__(self, **options):
         # Arguments for requests.post()
+        options["token"] = options["token"] or options.pop("token_arg")[0]
         self._request = dict(
             url=f"{options.pop('api_url')}/repos/{options.pop('repo')}/check-runs",
             headers=dict(
@@ -224,9 +225,7 @@ class GitHubAPIClient:
     metavar="GITHUB_REPOSITORY",
     default="user/repo",
 )
-@click.option(
-    "--token", envvar="GITHUB_TOKEN", metavar="GITHUB_TOKEN", default="abc1234567890def"
-)
+@click.option("--token", envvar="GITHUB_TOKEN", metavar="GITHUB_TOKEN", default=None)
 @click.option("--verbose", is_flag=True, help="Display verbose output.")
 @click.option("--dry-run", is_flag=True, help="Only show what would be done.")
 @click.option(
@@ -240,5 +239,6 @@ class GitHubAPIClient:
 )
 @click.argument("data_file")
 @click.argument("threshold", type=float)
+@click.argument("token_arg", nargs=-1)
 def cli(**options):
     GitHubAPIClient(**options).post()

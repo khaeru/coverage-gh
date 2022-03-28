@@ -30,3 +30,5 @@ jobs:
 
     - name: Invoke the CLI to annotate the PR
       uses: khaeru/coverage-gh@debug-code-loc
+      with:
+        token: ${{ github.token }}
