@@ -29,4 +29,4 @@ jobs:
       run: pytest --color=yes . -k nothing --cov .
 
     - name: Invoke the CLI to annotate the PR
-      uses: khaeru/coverage-gh@main
+      uses: khaeru/coverage-gh@debug-code-loc
