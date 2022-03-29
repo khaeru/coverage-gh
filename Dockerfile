@@ -9,6 +9,7 @@ LABEL "com.github.actions.homepage"="https://github.com/khaeru/coverage-dh"
 LABEL "com.github.actions.maintainer"="Paul Natsuo Kishimoto"
 
 COPY . .
-RUN pip install .
+RUN pip install --no-cache-dir . && \
+    rm -r coverage_gh* Dockerfile MANIFEST.in pyproject.toml setup.cfg
 
 ENTRYPOINT ["python", "-m", "coverage_gh"]
