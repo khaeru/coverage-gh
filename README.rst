@@ -29,7 +29,7 @@ This is the only file needed by the action, i.e., you do not need to give argume
        # This is a floating-point number between 0 and 100.
        #
        # Default: 100.0
-       threshold: 100.
+       threshold: 100.0
 
 License & credits
 =================
